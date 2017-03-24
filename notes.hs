@@ -61,6 +61,29 @@ hutton =
 
 -- Script --
 
+-- Functions --
+
+{-
+Find K-complementary pairs in a given array of integers. 
+Given an integer K, and an array A, the pair (i, j) is said to be 
+K-complementary if A[i] + A[j] = K.
+-}
+pairsKComplementary :: [Int] -> Int -> [(Int,Int)]
+pairsKComplementary [] _ = []
+pairsKComplementary (n:ns) k = (pairsKComplementary' n ns k) ++ (pairsKComplementary ns k)
+
+pairsKComplementary2 :: [Int] -> Int -> [(Int,Int)]
+pairsKComplementary2 (n:ns) k = [(i,j) | i <- (n:ns), j <- ns, i+j == k] 
+
+pairsKComplementary' :: Int -> [Int] -> Int -> [(Int, Int)]
+pairsKComplementary' _ [] k = [] 
+pairsKComplementary' n ns k = [(n,m) | m <- ns, n+m == k]
+
+pairsKComplementary'' :: Int -> [Int] -> Int -> [(Int, Int)]
+pairsKComplementary'' _ [] k = [] 
+pairsKComplementary'' i (n:ns) k | i+n == k  = (i,n) : pairsKComplementary'' i ns k
+                                 | otherwise = pairsKComplementary'' i ns k
+
 -- Chapter 7: Higher-order functions --
 
 
@@ -170,7 +193,7 @@ keepSubstring xs (y:ys) | has xs y  = y : keepSubstring xs ys
 
 --keepSubstringFl xs ys = foldl keepCharL' xs ys  
 
-keepCharL, keepCharL' :: String -> Char -> String -- Takes a char and a string and returns a new string with the char only, and none others. 
+keepCharL {-, keepCharL' -} :: String -> Char -> String -- Takes a char and a string and returns a new string with the char only, and none others. 
 
 keepCharL [] _ = []
 keepCharL (x:xs) y | x == y    = x : keepCharL xs y
@@ -696,7 +719,10 @@ perfects n = [x | x <- [1..n], sum (init (factorsEx x)) == x]
 
 -- 7. Show how the list comprehension [(x,y) | x <- [1,2], y <- [3,4]] with 2 generators can be
 -- re-expressed using two comprehensions with single generators.
+sol7 :: [(Integer, Integer)]
 sol7 = concat [[(x,y) | y <- [3,4]] | x <- [1,2]] -- "2 dimensions"
+
+sol7_2 :: [(Char, Char, Integer)]
 sol7_2 = concat[ concat[ [ (x,y,z) | z <- [1,2] ] | y <- ['a','b']] | x <- ['@','#']] -- "3 dimensions"
 
 -- 8. Redefine the function positions using the function find.
