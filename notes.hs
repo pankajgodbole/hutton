@@ -1,6 +1,7 @@
 -- hutton.hs --
 
 import Data.Char
+import Data.List
 
 -- Tests --
 
@@ -72,7 +73,7 @@ pairsKComplementary :: [Int] -> Int -> [(Int,Int)]
 pairsKComplementary [] _ = []
 pairsKComplementary (n:ns) k = (pairsKComplementary' n ns k) ++ (pairsKComplementary ns k)
 
-pairsKComplementary2 :: [Int] -> Int -> [(Int,Int)]
+pairsKComplementary2 :: [Int] -> Int -> [(Int,Int)] -- All possible pairs.
 pairsKComplementary2 (n:ns) k = [(i,j) | i <- (n:ns), j <- ns, i+j == k] 
 
 pairsKComplementary' :: Int -> [Int] -> Int -> [(Int, Int)]
@@ -86,26 +87,360 @@ pairsKComplementary'' i (n:ns) k | i+n == k  = (i,n) : pairsKComplementary'' i n
 
 -- Chapter 7: Higher-order functions --
 
+-- 7.9 Exercises --
+
+-- 1. Show how the list comprehension [f x | x <- xs, p x] can be re-expressed using 
+-- the higher-order functions map and filter.
+filmap :: [a] -> (a -> Bool) -> (a -> b) -> [b]
+filmap xs p f = map f (filter p xs)  
+
+
+-- 2. Without looking at the definitions from the standard prelude, define the following 
+-- higher-order library functions on lists.
+
+-- a. Decide if all elements of a list satisfy a predicate:
+allHut :: (a -> Bool) -> [a] -> Bool
+allHut p [] = True
+allHut p (x:xs) = p x && allHut p xs
+
+allC :: (a -> Bool) -> [a] -> Bool
+allC p = and.map p
+
+-- b. Decide if any element of a list satisfies a predicate:
+anyHut :: (a -> Bool) -> [a] -> Bool
+anyHut p [] = False
+anyHut p (x:xs) = p x || anyHut p xs
+
+anyC :: (a -> Bool) -> [a] -> Bool
+anyC p = or.map p
+
+-- c. Select elements from a list while they satisfy a predicate.
+takeWhileHut :: (a -> Bool) -> [a] -> [a]
+takeWhileHut _ [] = []
+takeWhileHut p (x:xs) | p x       = x : takeWhileHut p xs
+                      | otherwise = []
+
+-- d. Reject elements from a list while they satisfy a predicate.
+dropWhileHut :: (a -> Bool) -> [a] -> [a]
+dropWhileHut _ [] = []
+dropWhileHut p (x:xs) | p x       = dropWhileHut p xs
+                      | otherwise = x : xs
+
+
+-- 3. Redifine the functions map f and filter p using foldr.
+mapFr, mapFr2, mapR :: (a -> b) -> [a] -> [b]
+
+mapFr f = foldr ((:) . f) []
+
+mapFr2 f = foldr (\x -> \xs -> f x : xs) []
+
+mapR _ [] = []
+mapR f (x:xs) = f x : mapR f xs 
+
+filterFr :: (a -> Bool) -> [a] -> [a]
+filterFr p = foldr (\x xs -> if p x then x : xs else xs) []  
+
+filterR :: (a -> Bool) -> [a] -> [a]
+filterR _ [] = []
+filterR p (x:xs) | p x       = x : filterR p xs
+                 | otherwise = filterR p xs
+
+
+-- 4. Using foldl, define a function dec2int :: [Int] -> Int that converts
+-- a decimal number into an integer. E.g. dec2int [2,3,4,5] = 2345
+
+-----------------------------------------------------------------------------
+
+-- f v []     = v
+-- f v (x:xs) = f (v # x) xs
+
+-- foldl (#) v [x0, x1, ... , xn] = (... ((v # x0) # x1) ...) # xn
+
+-----------------------------------------------------------------------------
+
+dec2int :: [Int] -> Int
+dec2int = foldl (\v -> \x -> 10*v + x) 0
+
+
+-- 5. Without looking at the definitions in the standard prelude, define the 
+-- higher-order library function curry that converts a function on pairs to 
+-- a curried function, and conversely
+-- the function uncurry that converts a curried function with two arguments into 
+-- a function on pairs.
+-- Hint: first write down the types of the two functions.
+
+curryHut :: ((a,b) -> c) -> a -> b -> c
+curryHut f = \x -> \y -> f (x,y)
+
+uncurryHut :: (a -> b -> c) -> (a,b) -> c
+uncurryHut f = \(x,y) -> f x y
+
+
+-- 6. A higher-order function unfold that encapsulates a simple pattern of
+-- recursion for producing a list can be defined as follows:
+unfoldHut p h t x | p x       = []
+                  | otherwise = h x : unfoldHut p h t (t x)
+-- Redefine the functions chop8, map f and iterate f using unfold.
+
+-- Convert an integer to list of bits 0 or 1.
+int2binUnf :: Int ->[Bit]
+int2binUnf = unfoldHut (== 0) (`mod` 2) (`div` 2)
+
+--             chop8 :: [Bit] -> [[Bit]]
+--             chop8 []   = []
+--             chop8 bits = take 8 bits : chop8 (drop 8 bits) 
+
+chop8Unf :: [Bit] -> [[Bit]]
+chop8Unf = unfoldHut (== []) (take 8) (drop 8) 
+
+mapUnf :: Eq a => (a -> b) -> [a] -> [b]
+mapUnf f = unfoldHut (== []) (f . head ) (tail )
+
+iterateHut :: (Int -> Int) -> Int -> [Int]
+iterateHut f n | n > 144  = []
+               | otherwise = n : iterateHut f (f n)
+
+iterateUnf :: (Int -> Int) -> Int -> [Int]
+iterateUnf f = unfoldHut (> 144) id f
+
+-- Iterate while True
+iterateUnfBTrue :: (Bool -> Bool) -> Bool -> [Bool]
+iterateUnfBTrue f = unfoldHut (== False) id f
+
+-- Iterate while False
+iterateUnfBFalse :: (Bool -> Bool) -> Bool -> [Bool]
+iterateUnfBFalse f = unfoldHut (== True) id f
+
+
+-- 7. Modify the binary string transmitter example to detect simple transmission 
+-- errors using the concept of parity bits. That is, each 8-bit binary number
+-- produced during encoding is extended with a parity bit. The parity bit is set 
+-- to 1 if the number contains an odd number of ones, and to 0 otherwise. 
+-- In turn, each resulting 9-bit number consumed during decoding is checked to 
+-- ensure that its parity bit is correct. If the parity bit is correct it is 
+-- discarded, otherwise a parity error is reported.
+--
+-- Hint: the library function error :: String -> a displays the given string as
+-- an error message and terminates the program; the polymorphic result type 
+-- ensures that error can be used in any context.
+parify :: [Int] -> [Int]
+parify [] = []
+parify xs | even (sum xs) = xs ++ [0]
+          | otherwise     = xs ++ [1]
+
+unparify :: [Int] -> [Int]
+unparify [] = []
+unparify xs | even (sum (init xs)) && (last xs == 0) = init xs
+            | odd (sum (init xs)) && (last xs == 1)  = init xs
+            | otherwise                              = error "Parity error!"
+
+
+-- 8. Test your new string transmitter program from the previous exercise using
+-- a faulty communication channel that forgets the first bit, which can be 
+-- modelled using the tail function on lists of bits.
+transmitParity :: String -> String
+transmitParity = decode . unparify . channelParity . parify . encode
+             where
+               channelParity :: [Bit] -> [Bit]
+               channelParity = tail
+
+
+-- 9. Define a function thta applies its 2 argument functions to successive
+-- elements in a list alternately, in turn about order.
+-- For example:
+-- altMap (+10) (+100) [0,1,2,3,4]
+altMap :: (a -> b) -> (a -> b) -> [a] -> [b]
+altMap _ _ [] = []
+altMap f _ (x0:[]) = f x0 : []
+altMap f g (x0:x1:[]) = f x0 : g x1 : []
+altMap f g (x0:x1:xs) = f x0 : g x1 : altMap f g xs
+
+
+-- 10. Using altMap, define a function luhn that implements the Luhn algorithm from
+-- the exercises in chapter 4 for bank card numbers of any length. 
+-- Test your new function using your own bank card.
+
+{- 
+-- 8. The Luhn algorithm is used to check bank card numbers from simple errors such as
+-- mistyping a digit, and proceeds as follows:
+-- . consider each digit as a seperate number;
+-- . moving left, double every other number from the second last;
+-- . subtract 9 from each number that is now greater than 9;
+-- . add all the resulting numbers together;
+-- . if the total is divisible by 10, the card number is valid.
+--
+-- Define a function luhnDouble::Int->Int that doubles a digit and subtracts 9 
+-- if the result is greater than 9.
+-- Using luhnDouble and `mod`, define a function luhn that decides if a four-digit bank 
+-- card number is valid.
+
+luhn :: Int -> Int -> Int -> Int -> Bool
+luhn i j k l 
+  | mod (luhnDouble i + j + luhnDouble k + l) 10 == 0 = True
+  | otherwise = False
+
+
+luhnDouble :: Int -> Int
+luhnDouble n 
+    | n*2 < 9   = n*2
+    | otherwise = (n*2 - 9)
+-}
+
+luhn2 :: [Int] -> Bool
+luhn2 ns | mod ((sum . altMap id luhnDouble . reverse) ns) 10 == 0 = True
+         | otherwise = False
+
+
+
+-- 7.7 Voting Algorithms --
+
+votes :: [String]
+votes = ["Red", "Blue", "Green", "Blue", "Blue", "Red"]
+
+count :: Eq a => a -> [a] -> Int
+count x = length . filter (== x)
+
+rmdups :: Eq a => [a] -> [a]
+rmdups [] = []
+rmdups (x:xs) = x : filter (/= x) (rmdups xs)
+
+result :: Ord a => [a] -> [(Int,a)]
+result vs = sort [(count v vs, v) | v <- rmdups vs]
+
+winner :: Ord a => [a] -> a
+winner = snd . last . result
+
+
+-- Alternative vote --
+
+ballots :: [[String]]
+ballots = 
+  [
+    ["Red", "Green"],
+    ["Blue"],
+    ["Green", "Red", "Blue"],
+    ["Blue", "Green", "Red"],
+    ["Green"]
+  ]  
+
+rmempty :: Eq a => [[a]] -> [[a]]
+rmempty = filter (/= [])
+
+elim :: Eq a => a -> [[a]] -> [[a]]
+elim x = map (filter (/= x))
+
+rank :: Ord a => [[a]] -> [a]
+rank = map snd . result . map head
+
+winnerAlt :: Ord a => [[a]] -> a
+winnerAlt bs = 
+  case rank (rmempty bs) of
+    [c]    -> c
+    (c:cs) -> winnerAlt (elim c bs)
+
+{-
+  The case mechanism allow pattern matching to be used in the body of a definition,
+  and is useful for avoiding the need to introduce an extra function definition just for the
+  purposes of performing pattern matching.
+-} 
+
+
+
+
+
+
+
+-- 7.6 Binary string transmitter --
+
+type Bit = Int
+
+bin2int, bin2intFr :: [Bit] -> Int
+
+bin2int bits = sum [w * b | (w,b) <- zip weights bits]
+                 where weights = iterate (*2) 1 
+
+bin2intFr = foldr (\x y -> x + 2*y) 0
+
+-- Convert an integer to list of bits 0 or 1.
+int2bin :: Int -> [Bit]
+int2bin 0 = []
+int2bin n = n `mod` 2 : int2bin (n `div` 2)
+
+make8 :: [Bit] -> [Bit]
+make8 bits = take 8 (bits ++ repeat 0)
+
+-- Transmission --
+
+-- Encode a string of characters as a list of bits by
+-- converting each char into a Unicode number (eg. 'a' -> 97), 
+-- converting each such number into an 8-bit binary number, and 
+-- concatenating each of these numbers together to produce a list of bits. 
+encode :: String -> [Bit]
+encode = concat . map (make8 . int2bin . ord)
+
+-- Decode a list of bits produced using encode, by
+-- chopping the list of bits into lists 8-bit long,
+-- converting each list into its corresponding Unicode number, and finally
+-- converting each such number into the corresponding Unicode character.
+decode :: [Bit] -> String
+decode = map (chr . bin2int) . chop8
+           where
+             chop8 :: [Bit] -> [[Bit]]
+             chop8 []   = []
+             chop8 bits = take 8 bits : chop8 (drop 8 bits) 
+
+-- Simulate the transmission of a string of characters as a list of bits, by
+-- using a perfect communication channel that we model, by
+-- using the identity function.
+transmit :: String -> String
+transmit = decode . channel . encode
+             where
+               channel :: [Bit] -> [Bit]
+               channel = id
+
+
+-- 7.5 The composition operator --
+
+--(.) :: (b -> c) -> (a -> b) -> (a-> c)
+-- f . g = \x -> f (g x)
+-- (f . g) x = f (g x)
+
+
+-- odd n = not (even n) ==> not . even
+-- twice f x = f (f x) ==> f . f
+-- sumsqreven ns = sum (map (^2) (filter even ns)) = sum . (map (^2) (filter even ns)) = sum . (map (^2)) . (filter even ns)) = sum . map . filter even 
+-- 
+
+
+-- Composition of a list of functions
+composeFr, composeFl :: [a -> a] -> (a -> a)
+
+composeFr = foldr (.) id
+composeFl = foldl (.) id
+
 
 -- 7.4 The foldl function --
 
-sumHut3 :: Num a => [a] -> a
-sumHut3 = sumHut3' 0
-  where
-    sumHut3' v []     = v
-    sumHut3' v (x:xs) = sumHut3' (v + x) xs
+
+-----------------------------------------------------------------------------
 
 -- f v []     = v
 -- f v (x:xs) = f (v # x) xs
 
 -- foldl (#) v [x0, x1, ... , xn] = (... ((v# x0) # x1) ...) # xn
 
-
-
 foldlHut :: (a -> b -> a) -> a -> [b] -> a
-foldlHut f v []     = v
-foldlHut f v (x:xs) = foldlHut f (f v x) xs
+foldlHut f v [] = v
+foldlHut f v (x:xs) = foldlHut f (f v x) xs 
 
+-----------------------------------------------------------------------------
+
+
+sumHut3 :: Num a => [a] -> a
+sumHut3 = sumHut3' 0
+  where
+    sumHut3' v []     = v
+    sumHut3' v (x:xs) = sumHut3' (v + x) xs
 
 sumFl :: Num a => [a] -> a
 sumFl = foldl (+) 0
@@ -229,16 +564,29 @@ keepCharL' (x:xs) y | has (x:xs) y = x : keepCharL' xs y
 
 -- 7.3 The foldr function --
 
+
+-----------------------------------------------------------------------------
+
 -- f []     = v
 -- f (x:xs) = x # f xs
 
+-- foldr (#) v [x0, x1, ... , xn] = x0 # (x1 # ... (xn # v) ...)
 
 foldrHut :: (a -> b -> b) -> b -> [a] -> b
 foldrHut f v []     = v
 foldrHut f v (x:xs) = f x (foldrHut f v xs)
 
+
+-----------------------------------------------------------------------------
+
 sumHutFr :: Num a => [a] -> a
 sumHutFr = foldr (+) 0 -- Replace each cons by '+' and [] by 0.
+
+sumHutFr2 :: Num a => [a] -> a
+sumHutFr2 (x:xs) = (+) x (foldr (+) 0 xs)
+
+sumFr :: Num a => [a] -> a
+sumFr = foldr (\x -> \y -> x + y) 0
 
 sumHutFrArg :: Num a => [a] -> a
 sumHutFrArg xs = foldr (+) 0 xs
@@ -286,9 +634,6 @@ snoc :: a -> [a] -> [a]
 snoc x xs = xs ++ [x]
 
 reverseFr = foldr snoc []
-
-sumHutFr2 :: Num a => [a] -> a
-sumHutFr2 (x:xs) = (+) x (foldr (+) 0 xs)
 
 -----------------------------
 
@@ -349,18 +694,23 @@ keepChar x (y:ys) | x == y = y : keepChar x ys
 
 
 -- 7.2 Processing lists --
-mapHut :: (a -> b) -> [a] -> [b]
-mapHut f xs = [f x | x <- xs] -- Defining map using a list comprehension: simpler.
 
+-- Defining map using a list comprehension: simpler.
+mapHut :: (a -> b) -> [a] -> [b]
+mapHut f xs = [f x | x <- xs]
+
+-- Defining map using recursion: preferable for reasoning purposes.
 mapHutRec :: (a -> b) -> [a] -> [b]
-mapHutRec f []     = [] -- Defining map using recursion: preferable for reasoning purposes.
+mapHutRec f []     = []
 mapHutRec f (x:xs) = f x : map f xs
 
+-- Defining the function filter using a list comprehension: simpler. 
 filterHut :: (a -> Bool) -> [a] -> [a]
-filterHut p xs = [x | x <- xs, p x == True] -- Defining the function using a list comprehension: simpler. 
+filterHut p xs = [x | x <- xs, p x == True] 
 
+-- Defining the function filter using recursion: preferable for reasoning purposes.
 filterHutRec :: (a -> Bool) -> [a] -> [a]
-filterHutRec p []     = [] -- Defining the function using recursion: preferable for reasoning purposes.
+filterHutRec p []     = [] 
 filterHutRec p (x:xs) | p x == True = x : filterHutRec p xs
                       | otherwise   = filterHutRec p xs
 
@@ -371,6 +721,18 @@ sumOfSquaresOfEvens ns = sum (mapHut (^2) (filterHut even ns))
 
 sumOfSquaresOfEvensListComp :: [Int] -> Int
 sumOfSquaresOfEvensListComp ns = sum [n | n <- mapHut (^2) (filterHut even ns)]
+
+
+-- 7.1 Basic concepts
+
+addHut :: Int -> (Int -> Int)
+addHut = \x -> (\y -> x +y)
+
+twice, twicePa :: (a -> a) -> a -> a
+
+twice f x = f (f x) 
+twicePa f = undefined
+
 
 
 --------------------------
@@ -647,15 +1009,15 @@ plusplusHut :: [a] -> [a] -> [a]
 plusplusHut [] ys = ys
 plusplusHut (x:xs) ys = x : (plusplusHut xs ys)
 
-insert :: Ord a => a -> [a] -> [a]
-insert x [] = [x]
-insert x (y:ys) 
+insertHut :: Ord a => a -> [a] -> [a]
+insertHut x [] = [x]
+insertHut x (y:ys) 
   | x <= y    = x : y : ys
-  | otherwise = y: insert x ys
+  | otherwise = y: insertHut x ys
 
 sortInsertion :: Ord a => [a] -> [a]
 sortInsertion []     = []
-sortInsertion (x:xs) = insert x (sortInsertion xs)
+sortInsertion (x:xs) = insertHut x (sortInsertion xs)
 
 append :: [a] -> [a] -> [a]
 append xs [] = xs
@@ -1015,7 +1377,15 @@ multL :: Int -> Int -> Int -> Int
 -- multL x y z = x * y * z
 multL = \x -> \y -> \z -> x * y * z
 
--- 8. Define a function luhnDouble::Int->Int that doubles a digit and subtracts 9 if the result is greater than 9.
+-- 8. The Luhn algorithm is used to check bank card numbers from simple errors such as
+-- mistyping a digit, and proceeds as follows:
+-- . consider each digit as a seperate number;
+-- . moving left, double every other number from the second last;
+-- . subtract 9 from each number that is now greater than 9;
+-- . add all the resulting numbers together;
+-- . if the total is divisible by 10, the card number is valid.
+--
+--  Define a function luhnDouble::Int->Int that doubles a digit and subtracts 9 if the result is greater than 9.
 -- Using luhnDouble and `mod`, define a function luhn::Int->Int->Int->Int->Bool that decides if a four-digit bank card number is valid.
 luhn :: Int -> Int -> Int -> Int -> Bool
 luhn i j k l 
@@ -1274,7 +1644,11 @@ incrByOne n = addLambda' 1 n
 incrByOne' :: Int -> Int
 incrByOne' n = addLambda'' 1 n
 
-
+{-
+ Currying is the process of passing arguments to a function one at a time. 
+ Currying allows a function to be applied to less than the whole set of its arguments.
+ The arrow (->) is assumed to associate to the right; consequently function applications associates to the left.
+-}
 
 -- Chapter 2: Frirst steps --
 
