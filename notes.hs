@@ -85,6 +85,196 @@ pairsKComplementary'' _ [] k = []
 pairsKComplementary'' i (n:ns) k | i+n == k  = (i,n) : pairsKComplementary'' i ns k
                                  | otherwise = pairsKComplementary'' i ns k
 
+-- Chapter 8: Declaring types and classes --
+
+
+{-
+ 
+-- 8.1 Type declarations --
+
+Using the 'type' mechanism -- three ways of declaring a new type as a 
+synonym for an existing type.
+
+
+1. Introducing a new name for an existing type.
+   E.g. type String = [Char]
+
+2. Parameterising type declarations by other types.
+   E.g. type Pair a = (a,a)
+
+3. Declaring types with more than 1 parameter.
+   E.g. type Assoc k v = [(k,v)]
+
+Return the first value that is associated with a given key in a table.
+
+find :: Eq k => k -> Assoc k v -> v
+find k t = [v | (k', v) <- t, k' == k]
+
+
+-- 8.2 Data declarations --
+
+Using the 'data' mechanism -- declaring a totally new type, as opposed to
+a synonym for an existing type.
+
+E.g. data Bool = True | False
+
+
+The constructors in a data declaration can also have arguments. 
+
+E.g. data Shape = Circle Float | Rect Float Float
+
+
+Such constructors are constructor functions, actually. 
+
+Unlike regular functions, constructor functions do not have defining equations.
+Their purpose is to build pieces of data only.
+
+Data declarations themselves can also be parameterised.
+
+data Maybe a = Nothing | Just a
+
+
+-- 8.3 Newtype declarations --
+
+A new types having one constructor with one argument can be declared using
+a newtype mechanism.
+
+newtype Nat = N Int
+
+Benefits of using newtype over type and data.
+1) Using newtype helps improve type safety without affecting performance.
+2) newtype declares a new type; e.g. Nat and Int are different types.
+3) newtype constructors (e.g. N) do not incur any cost when programs are
+   evaluated, as the compiler removes them automatically once it has 
+   type checked the program.
+
+
+-- 8.4 Recursive types --
+
+data and newtype can be used to declare new types recursively.
+
+* If flattening a binary tree results in a sorted list, then the tree is called
+  a search tree.
+* When deciding whether a given value occurs in a tree, which of the two subtrees
+  of a node it may occur in can always be determined in advance. If the value is
+  less than the value at the node, then the value can occurs in the left subtree
+  only. If the value is greater than the value at the node, then it can occur
+  in the right subtree only.
+
+-}
+
+
+data Nat = Zero | Succ Nat deriving Show
+
+nat2int :: Nat -> Int 
+nat2int Zero     = 0
+nat2int (Succ n) = 1 + nat2int n 
+
+int2nat :: Int -> Nat
+int2nat 0 = Zero
+int2nat n = (Succ . int2nat) (n-1)
+
+addnats :: Nat -> Nat -> Nat
+addnats m n = int2nat (nat2int m + nat2int n)
+
+addnats2 :: Nat -> Nat -> Nat
+addnats2 Zero n     = n
+addnats2 (Succ m) n = Succ ( addnats2 m n) 
+
+
+data List a = Nil | Cons a (List a)
+
+len :: List a -> Int
+len Nil = 0
+len (Cons _ xs) = 1 + len xs 
+
+data Tree a = Leaf a | Node (Tree a) a (Tree a)
+
+-- Depicts a tree data structure
+t :: Tree Int
+t = Node (Node (Leaf 1) 3 (Leaf 4)) 5 (Node (Leaf 6) 7 (Leaf 9)) 
+
+
+occurs :: Eq a => a -> Tree a -> Bool
+occurs x (Leaf y) = x == y
+occurs x (Node l y r) = x == y || occurs x l || occurs x r
+
+flatten :: Tree a -> [a]
+flatten (Leaf x) = [x]
+flatten (Node l x r) = flatten l ++ [x] ++ flatten r
+
+occursTSearch :: Ord a => a -> Tree a -> Bool
+occursTSearch x (Leaf y)              = x == y
+occursTSearch x (Node l y r) | x == y = True
+                             | x < y  = occursTSearch x l
+                             | x > y  = occursTSearch x r
+
+
+-- Tree that has data in its leaves and nodes.
+data Tree1 a = Leaf1 a | Node1 (Tree1 a) a (Tree1 a)
+
+-- Tree that has data only in its nodes.
+data Tree2 a = Leaf2 | Node2 (Tree2 a) (Tree2 a)
+
+-- Tree that has different types of data in its nodes and in its leaves.
+data Tree3 a b = Leaf3 a | Node3 (Tree3 a b) b (Tree3 a b) 
+
+-- Tree that has a list of subtrees.
+data Tree4 a = Node4 a [Tree4 a]
+
+
+
+
+type Pos = (Int, Int)
+
+
+data Move = North | South | East | West deriving Show
+
+move :: Move -> Pos -> Pos
+move North (x,y) = (x, y+1)
+move South (x,y) = (x, y-1)
+move East (x,y) = (x+1, y)
+move West (x,y) = (x-1, y)
+
+moves :: [Move] -> Pos -> Pos
+moves [] p = p
+moves (m:ms) p = moves ms (move m p)
+
+pos2 = moves [North,South,East,West] (0,0)
+
+
+data Shape = Circle Float | Rect Float Float
+
+square :: Float -> Shape
+square n = Rect n n
+
+circle :: Float -> Shape
+circle n = Circle n
+
+area :: Shape -> Float
+area (Circle r) = pi * r^2
+area (Rect x y) = x * y
+
+
+safediv :: Int -> Int -> Maybe Int
+safediv _ 0 = Nothing
+safediv n d = Just (div n d)
+
+safehead :: [Int] -> Maybe Int
+safehead [] = Nothing
+safehead xs = Just (head xs)
+
+
+
+
+
+
+
+
+
+
+
+
 -- Chapter 7: Higher-order functions --
 
 -- 7.9 Exercises --
