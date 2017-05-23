@@ -1,89 +1,15 @@
 -- hutton.hs --
 
+module 
+  Notes 
+where
+
 import Data.Char
 import Data.List
-
--- Tests --
-
-hutton = 
-
-  -- 7.4 foldl function --
-
-  -- 7.3 foldr function --
-
-
-  -- 7.2 Processing lists --
-  remdupsFl [1, 2, 2, 3, 3, 3, 1, 1]
-
-  --zip [0..30] (fibs 30)
-
-  --all even [2,4,6,8]
+import qualified Data.Map as Map  
   
-  --any odd [2,4,6,8]
-  
-  --takeWhile even [2,4,5,8,9] -- take elements from a list as long as they satisfy the predicate; stop taking elements from a list as soon as we encounter an element which doesn't satisfy the predicate.
-  
-  --dropWhile odd [1,3,2,4,5,8,9] -- drop elements from a list as long as they satisfy the predicate; stop taking elements from a list as soon as we encounter an element which doesn't satisfy the predicate.
-  
-  --mapHut (mapHut (+1)) [[38,27],[43,3,9,82,10]]
-  --mapHut (mapHut (mapHut (+1))) [[[1,2],[3,4]],[[5,6]], [[7]]]
-
-  -- 5.3 zip function --
-  --zip ['a', 'b', 'c'] [1,2,3,4,5]
-  
-  -- Basic concepts --
-  --concat2 [['a','b','c'], ['w','e','r']]
-  
-  -- Exercises 4.8 --
-  
-  -- halve [1,2,3,4,5,6]
-
-  -- Operator Sections --
-  -- (1+) 2
-  -- (+1) 4
-  -- (*2) 4
-  -- (1/) 100
-  -- (/2) 100
-
-  -- testPatternList ['a', 'b', 'c']
-  -- testPatternListWithCons ['b', 'b', 'c']
-  
-  -- add2 doOnce (mul doTwice doTwice) (+1) 0
-  -- mul doTwice doThreeTimes (+1) 0
-  -- add2 doOnce doTwice (+1) 0
-  -- ("decr 9 = "); (decr 9)
-  -- isZero getZero
-  -- getOne
-  -- getZero
-
-
-
-
-
--- Script --
-
--- Functions --
-
-{-
-Find K-complementary pairs in a given array of integers. 
-Given an integer K, and an array A, the pair (i, j) is said to be 
-K-complementary if A[i] + A[j] = K.
--}
-pairsKComplementary :: [Int] -> Int -> [(Int,Int)]
-pairsKComplementary [] _ = []
-pairsKComplementary (n:ns) k = (pairsKComplementary' n ns k) ++ (pairsKComplementary ns k)
-
-pairsKComplementary2 :: [Int] -> Int -> [(Int,Int)] -- All possible pairs.
-pairsKComplementary2 (n:ns) k = [(i,j) | i <- (n:ns), j <- ns, i+j == k] 
-
-pairsKComplementary' :: Int -> [Int] -> Int -> [(Int, Int)]
-pairsKComplementary' _ [] k = [] 
-pairsKComplementary' n ns k = [(n,m) | m <- ns, n+m == k]
-
-pairsKComplementary'' :: Int -> [Int] -> Int -> [(Int, Int)]
-pairsKComplementary'' _ [] k = [] 
-pairsKComplementary'' i (n:ns) k | i+n == k  = (i,n) : pairsKComplementary'' i ns k
-                                 | otherwise = pairsKComplementary'' i ns k
+--import Declarations
+--import Input
 
 -- Chapter 8: Declaring types and classes --
 
@@ -92,7 +18,7 @@ pairsKComplementary'' i (n:ns) k | i+n == k  = (i,n) : pairsKComplementary'' i n
  
 -- 8.1 Type declarations --
 
-Using the 'type' mechanism -- three ways of declaring a new type as a 
+Using the 'type' mechanism there are three ways of declaring a new type as a 
 synonym for an existing type.
 
 
@@ -102,13 +28,13 @@ synonym for an existing type.
 2. Parameterising type declarations by other types.
    E.g. type Pair a = (a,a)
 
-3. Declaring types with more than 1 parameter.
+3. Declaring types with two or more parameters.
    E.g. type Assoc k v = [(k,v)]
 
 Return the first value that is associated with a given key in a table.
 
-find :: Eq k => k -> Assoc k v -> v
-find k t = [v | (k', v) <- t, k' == k]
+findVal :: Eq k => k -> Assoc k v -> v
+findVal k t = head [v | (k', v) <- t, k' == k]
 
 
 -- 8.2 Data declarations --
@@ -136,7 +62,7 @@ data Maybe a = Nothing | Just a
 
 -- 8.3 Newtype declarations --
 
-A new types having one constructor with one argument can be declared using
+A new type having one constructor with one argument can be declared using
 a newtype mechanism.
 
 newtype Nat = N Int
@@ -161,8 +87,24 @@ data and newtype can be used to declare new types recursively.
   only. If the value is greater than the value at the node, then it can occur
   in the right subtree only.
 
+
+-- 8.5 Classes and instance declarations --
+
+Only types declared using data and newtype mechanisms can be made into 
+instances of classes
+
 -}
 
+type Pos = (Int, Int)
+
+type Trans = Pos -> Pos
+
+-- Associates a key with a value in a list of pairs of keys and values.
+type Assoc k v = [(k,v)]
+
+-- Returns the first value that is associated with a given key in a table.
+findInTable :: Eq k => k -> Assoc k v -> v
+findInTable k t = head [v | (k',v) <- t, k' == k]
 
 data Nat = Zero | Succ Nat deriving Show
 
@@ -172,15 +114,23 @@ nat2int (Succ n) = 1 + nat2int n
 
 int2nat :: Int -> Nat
 int2nat 0 = Zero
-int2nat n = (Succ . int2nat) (n-1)
+int2nat n = Succ (int2nat (n-1)) -- Applying functions in a straightforward way.
+int2nat n = Succ (int2nat $ n-1) -- Using ($) to avoid parentheses.
+int2nat n = (Succ . int2nat) (n-1)  -- Using (.) to chain functions, but not using ($) to avoid parentheses.
+int2nat n = Succ . int2nat $ n-1  -- Using (.) to chain functions, but also using ($) to avoid parentheses..
+int2nat n = Succ $ int2nat $ n-1 -- Using ($) in both places.
+int2nat n = Succ $ int2nat $ subtract 1 $ n -- Using ($) to avoid parentheses everywhere.
 
-addnats :: Nat -> Nat -> Nat
-addnats m n = int2nat (nat2int m + nat2int n)
+addNatsCoversion :: Nat -> Nat -> Nat
+addNatsCoversion m n = int2nat (nat2int m + nat2int n)
 
-addnats2 :: Nat -> Nat -> Nat
-addnats2 Zero n     = n
-addnats2 (Succ m) n = Succ ( addnats2 m n) 
+addNatsR :: Nat -> Nat -> Nat
+addNatsR Zero n     = n
+addNatsR (Succ m) n = Succ (addNatsR m n) 
 
+addNatsR' :: Nat -> Nat -> Nat
+addNatsR' n Zero     = n
+addNatsR' m (Succ n) = Succ (addNatsR m n) 
 
 data List a = Nil | Cons a (List a)
 
@@ -203,7 +153,7 @@ flatten :: Tree a -> [a]
 flatten (Leaf x) = [x]
 flatten (Node l x r) = flatten l ++ [x] ++ flatten r
 
-occursTSearch :: Ord a => a -> Tree a -> Bool
+occursTSearch :: (Ord a) => a -> Tree a -> Bool
 occursTSearch x (Leaf y)              = x == y
 occursTSearch x (Node l y r) | x == y = True
                              | x < y  = occursTSearch x l
@@ -224,10 +174,6 @@ data Tree4 a = Node4 a [Tree4 a]
 
 
 
-
-type Pos = (Int, Int)
-
-
 data Move = North | South | East | West deriving Show
 
 move :: Move -> Pos -> Pos
@@ -240,10 +186,21 @@ moves :: [Move] -> Pos -> Pos
 moves [] p = p
 moves (m:ms) p = moves ms (move m p)
 
+rev :: Move -> Move
+rev North = South
+rev South = North
+rev East = West
+rev West = East
+
 pos2 = moves [North,South,East,West] (0,0)
 
 
-data Shape = Circle Float | Rect Float Float
+data Shape = Circle Float | Rect Float Float deriving Show
+
+instance Eq Shape where
+  Circle 1.0 == Circle 1.0 = True
+  Rect 1.0 1.0 == Rect 1.0 1.0    = True
+  _    == _        = False  
 
 square :: Float -> Shape
 square n = Rect n n
@@ -263,6 +220,503 @@ safediv n d = Just (div n d)
 safehead :: [Int] -> Maybe Int
 safehead [] = Nothing
 safehead xs = Just (head xs)
+
+---------------------------------------------------------------------------
+
+data Person = Person { 
+    firstName :: String  
+  , lastName :: String  
+  , age :: Int  
+  , height :: Float  
+  , phoneNumber :: String  
+  , flavor :: String  
+  } deriving (Show) 
+
+data Car = Car {
+    company :: String
+  , model :: String
+  , year :: Int
+  } deriving (Show) 
+
+car1 = Car {
+    company="Ford"
+  , model="Mustang"
+  , year=1967
+  } 
+
+
+data LockerState = Taken | Free deriving (Show, Eq)  
+  
+type Code = String  
+  
+type LockerMap = Map.Map Int (LockerState, Code) 
+
+
+lockerLookup :: Int -> LockerMap -> Either String Code  
+lockerLookup lockerNumber map =   
+  case Map.lookup lockerNumber map of   
+    Nothing -> Left $ "Locker number " ++ show lockerNumber ++ " doesn't exist!"  
+    Just (state, code) -> if state /= Taken   
+                            then Right code  
+                            else Left $ "Locker " ++ show lockerNumber ++ " is already taken!" 
+
+lockers :: LockerMap  
+lockers = Map.fromList [
+   (100,(Taken,"ZD39I"))  
+  ,(101,(Free,"JAH3I"))  
+  ,(103,(Free,"IQSA9"))  
+  ,(105,(Free,"QOTSA"))  
+  ,(109,(Taken,"893JJ"))  
+  ,(110,(Taken,"99292"))  
+  ] 
+
+data List2 a = Empty2 | Cons2 a (List2 a) deriving (Show, Read, Eq, Ord)  
+
+list2 = 3 `Cons2` (4 `Cons2` (5 `Cons2` Empty2))  
+
+
+data List3 a 
+  = 
+    Empty3 
+  | Cons3 {
+      listHead::a
+    , listTail::List3 a
+    } 
+  deriving (Show, Read, Eq, Ord)  
+
+list3E = Empty3
+list3 = 3 `Cons3` (4 `Cons3` (5 `Cons3` Empty3))  
+
+---------------------------------------------------------------------------
+
+
+-- 8.6 Tautology Checker --
+
+-- Decides whether or not the given proposition is a taulogy.
+isTaut :: Prop -> Bool
+isTaut p = and [evalProp s p | s <- substs p]
+
+-- Generates a list of values of substitutes corresponding to a given proposition.
+substs :: Prop -> [Subst]
+substs p = 
+  map (zip vs) (bools (length vs))
+    where
+      vs = rmdups (vars p)
+
+-- Evaluates a proposition based on the substitution for the variables of the proposition.
+evalProp :: Subst -> Prop -> Bool
+evalProp _ (Const v)   = v 
+evalProp s (Var x)     = findInTable x s
+evalProp s (Not p)  = not (evalProp s p)
+evalProp s (And p q)   = evalProp s p && evalProp s q
+evalProp s (Imply p q) = evalProp s q <= evalProp s q -- The Imply (=>) operation can be simulated by the <= operation.
+
+-- A lookup table that associates variable names to logical values.
+type Subst = Assoc Char Bool
+
+-- Generates a list of logical values of a given length.
+bools :: Int -> [[Bool]]
+bools 0 = [[]]
+bools n = map (False :) bss ++ map (True :) bss
+  where bss = bools (n-1)
+
+bools' :: Int -> [[Bool]]
+bools' n = map (reverse . map conv . make n . int2bin) range
+  where
+    range       = [0..(2^n)-1]
+    make n bits = take n (bits ++ repeat 0)
+    conv 0      = False
+    conv 1      = True
+
+-- Returns a list of all variables in a proposition.
+vars :: Prop -> [Char]
+vars (Const _)   = []
+vars (Var x)     = [x]   
+vars (Not p)  = vars p
+vars (And p q)   = vars p ++ vars q
+vars (Imply p q) = vars p ++ vars q
+
+-- Defines a proposition in different ways.
+data Prop = 
+    Const Bool
+  | Var Char
+  | Not Prop
+  | And Prop Prop
+  | Imply Prop Prop
+
+
+
+-- 8.7 Abstract Machine --
+
+data Expr 
+  = Val Int 
+  | Add Expr Expr
+
+value :: Expr -> Int
+value (Val n)   = n
+value (Add x y) = value x + value y
+
+
+type Cont = [Op]
+
+data Op = EVAL Expr | ADD Int
+
+-- Evaluates an expression.
+eval :: Expr -> Cont -> Int
+eval (Val n) c   = exec c n
+eval (Add x y) c = eval x (EVAL y : c)
+
+-- Executes an operation.
+exec :: Cont -> Int -> Int
+exec [] n           = n
+exec (EVAL y : c) n = eval y (ADD n : c)
+exec (ADD n : c) m  = exec c (n+m)
+
+valueByEval :: Expr -> Int
+valueByEval e = eval e []
+
+
+-- 8.9 Exercises --
+
+{-
+
+1. In a similar manner to the function add, define a recursive multiplication
+   function for the recursive type of natural numbers. 
+   Hint: make use of addNats in your definition.
+
+addNatsR :: Nat -> Nat -> Nat
+addNatsR Zero n     = n
+addNatsR (Succ m) n = Succ (addNatsR m n) 
+
+-}
+
+multNat :: Nat -> Nat -> Nat
+multNat m n = int2nat (nat2int m * nat2int n)
+
+multNatsR            :: Nat -> Nat -> Nat
+multNatsR Zero n     = Zero
+multNatsR n Zero     = Zero
+multNatsR (Succ m) n = addNatsR n (multNatsR m n) 
+
+
+{-
+
+2. Using the function compare :: Ord a => a -> a -> Ordering define the function
+   occurs :: Ord a => a -> Tree a -> Bool for search trees. 
+   Why is this new definition more efficient than the original version?
+
+occursTSearch                          :: (Ord a) => a -> Tree a -> Bool
+occursTSearch x (Leaf y)               =  x == y
+occursTSearch x (Node l y r) | x == y  =  True
+                             | x < y   =  occursTSearch x l
+                             | x > y   =  occursTSearch x r
+
+-}
+
+occursTSearchOrd                :: (Ord a) => a -> Tree a -> Bool
+occursTSearchOrd x (Leaf y)     =  compare x y == EQ
+occursTSearchOrd x (Node l y r) =
+  case compare x y of
+    EQ -> True
+    LT -> occursTSearchOrd x l
+    GT -> occursTSearchOrd x r
+
+{-
+
+3. Consider the following type of binary trees:
+   data Tree a = Leaf a | Node (Tree a) (Tree a)
+   Let us say that such a tree is 'balanced' if the number of leaves in the left
+   and right subtree of every node differs by at most one, with leaves themselves
+   being trivially balanced.
+   Define a function balanced :: Tree a -> Bool that decides whether a tree is
+   balanced or not.
+  Hint: first define a function that returns the number of leaves in a tree.
+
+-}
+
+-- Depicts a tree data structure which is balanced.
+data TreeBal a = LeafBal a | NodeBal (TreeBal a) (TreeBal a) deriving Show
+
+tBal :: TreeBal Int
+tBal = NodeBal  (NodeBal (LeafBal 1) (LeafBal 4)) 
+                (NodeBal (LeafBal 6) (LeafBal 9)) 
+
+tBal2 :: TreeBal Int
+tBal2 = NodeBal 
+            (NodeBal 
+                (LeafBal 4) 
+                (NodeBal 
+                    (LeafBal 13) 
+                    (LeafBal 0)))
+            (NodeBal 
+                (NodeBal 
+                    (LeafBal 333) 
+                    (NodeBal 
+                        (LeafBal 6) 
+                        (LeafBal 9)))
+                (LeafBal 42))
+
+
+isBalanced                                 :: TreeBal Int -> Bool
+isBalanced (LeafBal _)                     =  True
+isBalanced (NodeBal l r) = (diffLeaves <= 1) && isBalanced l && isBalanced r
+  
+  where
+
+    diffLeaves = abs (numLeaves l - numLeaves r)
+
+    numLeaves               :: TreeBal Int -> Int
+    numLeaves (LeafBal _)   =  1
+    numLeaves (NodeBal l r) =  numLeaves l + numLeaves r
+
+{- 
+ 
+4. Define a function balance :: [a] -> Tree a that converts a non-empty list into
+   a balanced tree.
+   Hint: first define a function that splits a list into two halves whose length 
+   differs by at most one.
+
+   -- Depicts a tree data structure which is balanced.
+   data TreeBal a = LeafBal a | NodeBal (TreeBal a) (TreeBal a) deriving Show
+
+  flatten :: Tree a -> [a]
+  flatten (Leaf x) = [x]
+  flatten (Node l x r) = flatten l ++ [x] ++ flatten r
+
+-}
+
+balance     :: [a] -> TreeBal a
+balance []  =  error "Provide a list that is non-empty!"
+balance [x] =  LeafBal x
+balance xs  =  NodeBal (balance (fst (halveList xs))) (balance (snd (halveList xs)))  
+
+halveList :: [a] -> ([a],[a])
+halveList [] = ([],[])
+halveList xs = splitAt (half xs) xs
+  where
+    half :: [a] -> Int
+    half xs = div (length xs) 2 
+
+
+{-
+
+5. Given the type declaration
+   data Expr = Val Int | Add Expr Expr
+   Define the higher-order function
+   folde :: (Int -> a) -> (a -> a -> a) -> Expr -> a
+   such that folde f g replaces each Val constructor in an expression by the 
+   function f, and each Add constructor by the function g.
+
+-}
+
+folde                 :: (Int -> a) -> (a -> a -> a) -> Expr -> a
+folde f g (Val n)     =  f n
+folde f g (Add e1 e2) =  g (folde f g e1) (folde f g e2)
+
+
+{-
+6. Using folde define a funciton
+   eval :: Expr -> Int
+   that evaluates an expression to an integer value, and a function 
+   size :: Expr -> Int
+   that calculates the number of values in an expression.
+-}
+
+evalE             :: Expr -> Int
+evalE (Val n)     =  n
+evalE (Add e1 e2) =  folde toEnum (+) (Add e1 e2)
+
+numVals             :: Expr -> Int
+numVals (Val n)     =  1
+numVals (Add e1 e2) =  numVals e1 + numVals e2  
+
+
+{-
+
+7. Complete the following instance declarations:
+     instance Eq a => Eq (Maybe a) where
+     instance Eq a => Eq [a] where
+
+instance Eq a => Eq (Maybe a) where
+  -- Defines the (==) operation.
+  Nothing == Nothing = True
+  Just    == Just    = True
+  _       == _       = False
+
+instance Eq a => Eq [a] where
+  -- Defines the (==) operation.
+  [] == []         = True
+  [x] == [y]       = x == y
+  (x:xs) == (y:ys) = x==y && xs==ys
+  _  == _          = False 
+
+-}
+
+
+{-
+
+8. Extend the tautology checker to support the use of logical disjunction (V) and
+   equivalence (<=>) in propositions.
+
+   Truth Table for Disjunction (OR operation).
+
+    A | B | A v B
+   ---------------
+    F | F |   F
+    F | T |   T
+    T | F |   T
+    T | T |   T
+
+
+    Truth Table for Equivalence.
+
+    A | B | A <=> B
+   -----------------
+    F | F |    T
+    F | T |    F
+    T | F |    F
+    T | T |    F
+-}
+
+data Prp =
+    Constantification Bool
+  | Assignment Char
+  | Negation Prp
+  | Equivalence Prp Prp
+  | Disjunction Prp Prp
+  | Conjunction Prp Prp
+  | Implication Prp Prp
+
+-- A list of pairs of keys to their corresponding values. 
+type Matches key value = [(key,value)]
+
+-- Substitution of values of type Bool for keys of type Char. 
+-- E.g. the substitution [('A',False), ('B', True)] substitutes the value
+-- False for A and the value True for B.
+type Substitution = Matches Char Bool
+
+
+-- Evaluates a proposition in terms of Substitution for its variables.
+evalPrp                          :: Substitution -> Prp -> Bool
+evalPrp _ (Constantification b)  =  b
+evalPrp s (Equivalence p1 p2)    =  not (evalPrp s p1 || evalPrp s p2)
+evalPrp s (Assignment c)         =  findInTable c s -- Look up the list of Substitution, and substitute the Bool value for the Char argument.
+evalPrp s (Negation p)           =  not (evalPrp s p)
+evalPrp s (Disjunction p1 p2)    =  evalPrp s p1 || evalPrp s p2
+evalPrp s (Conjunction p1 p2)    =  evalPrp s p1 && evalPrp s p2
+evalPrp s (Implication p1 p2)    =  evalPrp s p1 <= evalPrp s p2  -- Knowing that: False < True
+
+-- Returns all the variables in a proposition.
+variables                       :: Prp -> [Char]
+variables (Constantification _)  =  [] 
+variables (Assignment c)        =  [c]
+variables (Equivalence p1 p2)   =  variables p1 ++ variables p2
+variables (Negation p)          =  variables p
+variables (Disjunction p1 p2)   =  variables p1 ++ variables p2
+variables (Conjunction p1 p2)   =  variables p1 ++ variables p2
+variables (Implication p1 p2)   =  variables p1 ++ variables p2
+
+boolsAll    :: Int -> [[Bool]]
+boolsAll 0  =  [[]]
+boolsAll n  =  map (False :) bss ++ map (True :) bss
+                 where
+                   bss = boolsAll (n-1)
+
+
+-- Generates all the possible substitutions for a given proposition.
+substitutions    :: Prp -> [Substitution]
+substitutions p  =  map (zip vs) (boolsAll (length vs))
+                    where
+                      vs = rmdups $ variables p
+
+
+-- Decides whether a proposition is a tautology (a logical statement which is always true).
+isItATautology    :: Prp -> Bool
+isItATautology p  =  and [evalPrp s p | s <- substitutions p]
+
+
+
+{- 
+
+  9. Extend the abstract machine to support the use of multiplication.
+
+-}
+
+-- Declarations -----------------------------------------------------
+
+data Exp =
+    Constantization Int
+  | Addition Exp Exp
+  | Multiplication Exp Exp
+  deriving Show
+
+data Oper = 
+    EVALUATE Exp
+  | AD Int
+  | MU Int
+
+type Controls = [Oper]
+
+---------------------------------------------------------------
+
+
+-- Definitions
+
+-- Evaluates an expression in the context of a control stack.
+evalExp                           :: Exp -> Controls -> Int
+evalExp (Constantization n) c     =  execOper c n
+evalExp (Addition e1 e2) c        =  evalExp e1 (EVALUATE e2 : AD 0 : c)
+evalExp (Multiplication e1 e2) c  =  evalExp e1 (EVALUATE e2 : MU 1 : c)
+
+
+-- Executes the control stack in the context of an integer operand.
+execOper                             :: Controls -> Int -> Int
+execOper [] n                        =  n
+execOper (EVALUATE e1 : AD 0 : c) n  =  evalExp e1 (AD n : c)
+execOper (EVALUATE e1 : MU 1 : c) n  =  evalExp e1 (MU n : c)
+execOper (AD n : c) m                =  execOper c (n+m)
+execOper (MU n : c) m                =  execOper c (n*m)
+
+
+-- Calculates the value of an expression using a control stack.
+valExp    :: Exp -> Int
+valExp e  =  evalExp e []
+
+--
+
+-- Values
+
+exp0 = Constantization 0
+
+exp1 = Constantization 1
+
+exp2 = Addition exp0 exp1
+
+exp3 = Multiplication (Constantization 5) (Constantization 5)
+
+exp4 = Addition exp0 exp2
+
+exp5 =
+  Addition
+    (Multiplication exp0 exp1)
+    (Multiplication exp1 exp2)
+
+
+
+
+--
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -529,7 +983,7 @@ winnerAlt bs =
     (c:cs) -> winnerAlt (elim c bs)
 
 {-
-  The case mechanism allow pattern matching to be used in the body of a definition,
+  The case mechanism allows pattern matching to be used in the body of a definition,
   and is useful for avoiding the need to introduce an extra function definition just for the
   purposes of performing pattern matching.
 -} 
@@ -1456,8 +1910,8 @@ isPrime n = factors n == [1,n]
 primes :: Int -> [Int]
 primes n = [x | x <- [2..n], isPrime x]
 
-find :: Eq a => a -> [(a,b)] -> [b]
-find k t = [v | (k', v) <- t, k' == k]
+findVal :: Eq a => a -> [(a,b)] -> [b]
+findVal k t = [v | (k', v) <- t, k' == k]
 
 
 
@@ -1734,6 +2188,12 @@ isZero n =
 decr :: Int -> Int
 decr n = n - 1
 
+andC :: Bool -> Bool -> Bool
+andC x y = if x then y else False
+
+orC :: Bool -> Bool -> Bool
+orC x y = if x then True else y
+
 ----------------------------------------
 
 
@@ -1782,8 +2242,8 @@ ex4 = ([False, True], ['0', '1']) :: ([Bool], [Char])
 ex5 = [tail, init, reverse] :: [[a] -> [a]]
 
 -- 2 Write down definitions that have the following types.
-bools :: [Bool]
-bools = [False, True]
+booleans :: [Bool]
+booleans = [False, True]
 
 nums :: [[Int]]
 nums = [[1,2,3], [2,4,6], [3,6,9]]
