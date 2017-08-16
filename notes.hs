@@ -1,7 +1,7 @@
 -- hutton.hs --
 
 module 
-  Notes 
+  Book.Hutton.Notes 
 where
 
 import Data.Char
@@ -597,7 +597,7 @@ type Substitution = Matches Char Bool
 
 
 -- Evaluates a proposition in terms of Substitution for its variables.
-evalPrp                          :: Substitution -> Prp -> Bool
+evalPrp :: Substitution -> Prp -> Bool
 evalPrp _ (Constantification b)  =  b
 evalPrp s (Equivalence p1 p2)    =  not (evalPrp s p1 || evalPrp s p2)
 evalPrp s (Assignment c)         =  findInTable c s -- Look up the list of Substitution, and substitute the Bool value for the Char argument.
@@ -607,7 +607,7 @@ evalPrp s (Conjunction p1 p2)    =  evalPrp s p1 && evalPrp s p2
 evalPrp s (Implication p1 p2)    =  evalPrp s p1 <= evalPrp s p2  -- Knowing that: False < True
 
 -- Returns all the variables in a proposition.
-variables                       :: Prp -> [Char]
+variables :: Prp -> [Char]
 variables (Constantification _)  =  [] 
 variables (Assignment c)        =  [c]
 variables (Equivalence p1 p2)   =  variables p1 ++ variables p2
@@ -616,22 +616,21 @@ variables (Disjunction p1 p2)   =  variables p1 ++ variables p2
 variables (Conjunction p1 p2)   =  variables p1 ++ variables p2
 variables (Implication p1 p2)   =  variables p1 ++ variables p2
 
-boolsAll    :: Int -> [[Bool]]
+-- Returns all the possible boolean values.
+boolsAll :: Int -> [[Bool]]
 boolsAll 0  =  [[]]
 boolsAll n  =  map (False :) bss ++ map (True :) bss
                  where
                    bss = boolsAll (n-1)
 
-
 -- Generates all the possible substitutions for a given proposition.
-substitutions    :: Prp -> [Substitution]
+substitutions :: Prp -> [Substitution]
 substitutions p  =  map (zip vs) (boolsAll (length vs))
                     where
                       vs = rmdups $ variables p
 
-
 -- Decides whether a proposition is a tautology (a logical statement which is always true).
-isItATautology    :: Prp -> Bool
+isItATautology :: Prp -> Bool
 isItATautology p  =  and [evalPrp s p | s <- substitutions p]
 
 
@@ -1073,6 +1072,13 @@ composeFl = foldl (.) id
 
 -- foldl (#) v [x0, x1, ... , xn] = (... ((v# x0) # x1) ...) # xn
 
+-- Think of the behavior of foldl in a non-recursive manner, in terms of
+-- an operator (#) that is assumed to associate to the left, as summarised by the 
+-- following equation.
+-- foldl (#) v [x0, x1, ... , xn] = (... ((v # x0) # x1) ...) # xn
+
+-- Replace each (:) by the function and the [] by the initial value.
+
 foldlHut :: (a -> b -> a) -> a -> [b] -> a
 foldlHut f v [] = v
 foldlHut f v (x:xs) = foldlHut f (f v x) xs 
@@ -1128,10 +1134,6 @@ has (x:xs) y | y == x = True
 -----------------------------
 -- f v []     = v
 -- f v (x:xs) = f (v # x) xs
-
--- Think of the behavior of foldl in a non-recursive manner, in terms of
--- an operator (#) that is assumed to associate to the left, as summarised by the following equation.
--- foldl (#) v [x0, x1, ... , xn] = (... ((v # x0) # x1) ...) # xn
 
 facFl :: Int -> Int -- Takes an Integer and returns its fac.
 facFl n = foldl (*) 1 [1..n]
@@ -1216,6 +1218,14 @@ keepCharL' (x:xs) y | has (x:xs) y = x : keepCharL' xs y
 
 -- foldr (#) v [x0, x1, ... , xn] = x0 # (x1 # ... (xn # v) ...)
 
+-- The function foldr f v works by 
+-- replacing each cons operator by the function and the empty list at the end by v.
+
+--
+-- Think of the behavior of foldr in a non-recursive manner, in terms of an operator (#) that 
+-- is assumed to associate to the right, as summarised by the following equation.
+-- foldr (#) v [x0, x1, ... , xn] = x0 # (x1 # ... (xn # v) ...)
+
 foldrHut :: (a -> b -> b) -> b -> [a] -> b
 foldrHut f v []     = v
 foldrHut f v (x:xs) = f x (foldrHut f v xs)
@@ -1280,10 +1290,6 @@ snoc x xs = xs ++ [x]
 reverseFr = foldr snoc []
 
 -----------------------------
-
--- Think of the behavior of foldr in a non-recursive manner, in terms of an operator (#) that 
--- is assumed to associate to the right, as summarised by the following equation.
--- foldr (#) v [x0, x1, ... , xn] = x0 # (x1 # ... (xn # v) ...)
 
 facFr :: Int -> Int
 facFr n = foldr (*) 1 [1..n] -- Takes an Integer and returns its fac.
