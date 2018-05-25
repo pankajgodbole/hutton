@@ -987,18 +987,165 @@ exp5 =
 
 
 
+-- Chapter 9: The Countdown Problem --
 
+
+-- 9.11 Exercises --
+
+
+{-  
+1. Redefine the combinatorial function choices using a list comprehension rather
+   than using composition, concat and map.
+-}
+  
+-- Returns all possible ways of selecting zero or more elements in any order.
+--choiceslc                 ∷   [a] → [[a]]
+--choiceslc                 =   concat . map perms . subs
+
+--data Ope =
+--    Addi
+--  | Subs
+--  | Mult
+--  | Divi
 --
-
-
-
-
-
-
-
-
-
-
-
-
-
+--instance Show Ope where
+--  show Addi = "+"
+--  show Subs = "-"
+--  show Mult = "*"
+--  show Divi = "/"
+--
+---- Decides whether applying an operator to two positive naturals gives another positive natural.
+--valid :: Ope -> Int -> Int -> Bool
+--valid Addi x y = x <= y
+--valid Subs x y = x > y
+--valid Mult x y = x <= y && x /= 1 && y /= 1
+--valid Divi x y = x `mod` y == 0 && y /= 1
+--
+---- Performs a valid application
+--apply :: Ope -> Int -> Int -> Int
+--apply Addi x y = x + y
+--apply Subs x y = x - y
+--apply Mult x y = x * y
+--apply Divi x y = x `div` y
+--
+--
+---- 9.3 Numeric expressions --
+--
+--data Expre = Valu Int | Appl Ope Expre Expre
+--
+--instance Show Expre where
+--  show (Valu n)          =  show n
+--  show (Appl o l r)      =  addParens l ++ show o ++ addParens r
+--                            where
+--                               addParens (Valu n) = show n
+--                               addParens e        = "(" ++ show e ++ ")"
+--
+---- Gives all the values in an expression
+--values                   ∷  Expre → [Int]
+--values (Valu n)          =  [n]
+--values (Appl _ l r)      =  values l ++ values r
+--
+--
+---- Evaluates the whole expression
+--evalu                    ∷  Expre → [Int]
+--evalu (Valu n)           =  [n | n > 0]
+--evalu (Appl o l r)       =  [apply o x y
+--                                | x ← evalu l
+--                                , y ← evalu r
+--                                , valid o x y]
+--
+---- 9.4 Combinatorial functions --
+--
+---- Gives subsequences list of all.
+--subs                     ∷  [a] → [[a]]
+--subs []                  =  [[]]
+--subs (x:xs)              =  yss ++ map (x:) yss
+--                              where yss = subs xs
+--                                    
+---- Provides ways possible all of inserting a new element into a list.
+--interleave               ∷  a → [a] → [[a]]
+--interleave x []          =  [[x]]
+--interleave x (y:ys)      =  (x:y:ys) : map (y:) (interleave x ys)
+--
+---- Returns all permutations of a list.
+--perms                    ∷  [a] → [[a]]
+--perms []                 =  [[]]
+--perms (x:xs)             =  concat (map (interleave x) (perms xs))
+--
+---- Returns all possible ways of selecting zero or more elements in any order.
+--choices                  ∷   [a] → [[a]]
+--choices                  =   concat . map perms . subs
+--
+---- Decides whether a list of numbers has a solution to the given expression.
+---- Returns true if given an expression, a list of numbers and a target, if the list of
+---- values in the expression is chosen from the list of numbers, and the
+---- expression evaluates to give the target.
+--hasSolution              ∷   Expre → [Int] → Int → Bool
+--hasSolution e ns n       =  elem (values e) (choices ns) && evalu e == [n]
+--
+--
+---- 9.6 Brute force --
+--
+---- Splits a list into two non-empty lists in all possible ways.
+--splitup         ∷   [a] → [([a],[a])]
+--splitup []      =   []
+--splitup [_]     =   []
+--splitup (x:xs)  =   ([x], xs) : [(x:ls, rs) | (ls, rs) ← splitup xs]
+--
+---- Takes a list of integers and generates all the possible expressions whose list
+---- of values is presicely the given list.
+--exprs       ∷  [Int] → [Expre] 
+--exprs []    =  []
+--exprs [n]   =  [Valu n] 
+--exprs ns    =  [e |  (ls, rs) ← splitup ns, l ← exprs ls, r ← exprs rs, e ← joinexprs l r]
+--
+---- Takes two expressions and combines them in all possible ways using each of the four
+---- numeric operators.
+--joinexprs      ∷  Expre → Expre → [Expre]
+--joinexprs l r  =   [Appl o l r | o ← opes]
+--
+---- The four numeric operators
+--opes  ∷  [Ope]
+--opes  =  [Addi, Subs, Mult, Divi]   
+--
+--
+---- solutions: Takes a list of numbers and a target number, and generates all possible
+---- expressions over each choice from the list of numbers which evaluate to give the target
+---- number successfully.
+--solutions        ∷   [Int] → Int → [Expre]
+--solutions ns n   =   [e | ns' ← choices ns, e ← exprs ns', evalu e == [n]]
+--
+--
+---- 9.8 Combining generation and evaluation --
+--
+---- A pair comprising an expression and the evaluation of that expression. 
+--type Result = (Expre, Int)
+--
+---- Takes a list of integers and generates all possible pairings of an expression formed using the
+---- integers from the list and the evaluation of that expression.
+--results ∷ [Int] → [Result]
+--results []    =   []
+--results [n]   =   [(Valu n, n) | n > 0]
+--results ns    =   [res | (ls, rs) ← splitup ns, lx ← results ls, ry ← results rs, res ← combine' lx ry]
+--
+--combine' ∷ Result → Result → [Result]
+--combine' (l,x) (r,y) = [(Appl o l r, apply o x y) | o ← opes, valid o x y]
+--
+---- Takes a list of integers and a single integer (the target), and finds all the expressions
+---- (by choosing various combinations of the integers) that evaluate to the target.
+--solutions' ∷ [Int] → Int → [Expre]
+--solutions' ns n   =    [e | ns' ← choices ns, (e,n') ← results ns', n' == n] 
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
+--
